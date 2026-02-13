@@ -1,0 +1,8 @@
+{
+  "name": "Ritik club",
+  "description": "A high-fidelity color prediction game simulation featuring demo coins, modern dark theme, and AI-powered avatar generation.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

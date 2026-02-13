@@ -1,0 +1,87 @@
+
+import React, { useState } from 'react';
+import { GameMode, GameResult, ColorType, Tab } from '../types.ts';
+
+interface WinGoGameProps {
+  activeMode: GameMode;
+  setActiveMode: (mode: GameMode) => void;
+  timeLeft: number;
+  period: string;
+  results: GameResult[];
+  balance: number;
+  onBet: (bet: any) => void;
+  hasAccess: boolean;
+  setTab: (t: Tab) => void;
+}
+
+const WinGoGame: React.FC<WinGoGameProps> = ({ activeMode, setActiveMode, timeLeft, period, results, balance, onBet, hasAccess, setTab }) => {
+  const [selectedMultiplier, setSelectedMultiplier] = useState(1);
+  const [betModal, setBetModal] = useState<{type: any, label: string} | null>(null);
+
+  const formatTimer = (s: number) => ({
+    m: Math.floor(s / 60).toString().padStart(2, '0'),
+    s: (s % 60).toString().padStart(2, '0')
+  });
+
+  const timer = formatTimer(timeLeft);
+
+  return (
+    <div className="p-4 space-y-4 animate-in fade-in duration-500">
+      <div className="bg-gradient-to-br from-[#1e2330] to-[#11131a] rounded-[2rem] p-6 border border-white/5 flex justify-between items-center">
+        <div><p className="text-[10px] font-black text-gray-500 uppercase">Period ID</p><p className="text-lg font-black font-mono tracking-tighter">{period.slice(-8)}</p></div>
+        <div className="text-right"><p className="text-[10px] font-black text-gray-500 uppercase">Count Down</p><div className="flex gap-1 text-2xl font-black font-orbitron text-blue-500"><span>{timer.m}</span><span>:</span><span>{timer.s}</span></div></div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        {['30sec', '1min', '3min', '5min'].map((m: any) => (
+          <button key={m} onClick={() => setActiveMode(m)} className={`py-3 rounded-2xl text-[10px] font-black border transition-all ${activeMode === m ? 'bg-blue-600 border-blue-400' : 'bg-white/5 border-white/5 text-gray-500'}`}>{m}</button>
+        ))}
+      </div>
+
+      <div className="bg-[#1e2330] rounded-[2.5rem] p-6 space-y-6">
+        {!hasAccess ? (
+           <div className="text-center py-10 space-y-4">
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center text-2xl mx-auto">🔒</div>
+              <p className="text-xs font-black uppercase text-gray-400">Winning Prediction Locked</p>
+              <p className="text-[9px] font-bold text-gray-600">Please complete a ₹20 Deposit to play</p>
+              <button onClick={() => setTab(Tab.WALLET)} className="w-full py-4 bg-blue-600 rounded-2xl font-black text-[10px] uppercase">Open Wallet</button>
+           </div>
+        ) : (
+           <>
+              <div className="grid grid-cols-3 gap-3">
+                <button onClick={() => setBetModal({type: ColorType.GREEN, label: 'Green'})} className="bg-green-600 py-4 rounded-2xl font-black text-xs uppercase shadow-lg shadow-green-900/30">Green</button>
+                <button onClick={() => setBetModal({type: ColorType.VIOLET, label: 'Violet'})} className="bg-purple-600 py-4 rounded-2xl font-black text-xs uppercase shadow-lg shadow-purple-900/30">Violet</button>
+                <button onClick={() => setBetModal({type: ColorType.RED, label: 'Red'})} className="bg-red-600 py-4 rounded-2xl font-black text-xs uppercase shadow-lg shadow-red-900/30">Red</button>
+              </div>
+              <div className="bg-black/20 p-4 rounded-3xl grid grid-cols-5 gap-3">
+                {[0,1,2,3,4,5,6,7,8,9].map(n => (
+                  <button key={n} onClick={() => setBetModal({type: n, label: `Number ${n}`})} className={`aspect-square rounded-2xl flex items-center justify-center font-black text-lg border border-white/5 ${n%2===0 ? 'bg-red-600' : 'bg-green-600'}`}>{n}</button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <button onClick={() => setBetModal({type: 'Big', label: 'Big'})} className="bg-orange-500 py-4 rounded-2xl font-black text-sm uppercase">Big</button>
+                <button onClick={() => setBetModal({type: 'Small', label: 'Small'})} className="bg-blue-600 py-4 rounded-2xl font-black text-sm uppercase">Small</button>
+              </div>
+           </>
+        )}
+      </div>
+
+      {betModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-4">
+          <div className="w-full max-w-md bg-[#242938] rounded-[3rem] p-8 animate-in slide-in-from-bottom duration-300">
+            <h3 className="text-xl font-black mb-6">Bet: <span className="text-blue-500">{betModal.label}</span></h3>
+            <div className="grid grid-cols-5 gap-2 mb-8">
+              {[1, 5, 10, 50, 100].map(m => (
+                <button key={m} onClick={() => setSelectedMultiplier(m)} className={`py-4 rounded-2xl font-black text-xs ${selectedMultiplier === m ? 'bg-blue-600 shadow-xl' : 'bg-white/5 text-gray-500'}`}>{m}x</button>
+              ))}
+            </div>
+            <button onClick={() => { onBet({selection: betModal.type, amount: 10 * selectedMultiplier}); setBetModal(null); }} className="w-full py-5 bg-green-600 rounded-3xl font-black text-lg uppercase">Confirm 🪙 {(10 * selectedMultiplier)}</button>
+            <button onClick={() => setBetModal(null)} className="w-full mt-4 py-3 text-gray-500 font-bold uppercase text-[10px]">Close</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default WinGoGame;
