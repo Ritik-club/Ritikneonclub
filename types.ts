@@ -21,6 +21,10 @@ export enum GameType {
   DRAGON_TIGER = 'DRAGON_TIGER',
   K3 = 'K3',
   D5 = 'D5',
+  PENALTY = 'PENALTY',
+  BACCARAT = 'BACCARAT',
+  PLINKO = 'PLINKO',
+  WHEEL = 'WHEEL',
   CUSTOM = 'CUSTOM'
 }
 
@@ -35,6 +39,7 @@ export interface GameResult {
 
 export interface UserBet {
   id: string;
+  userId: string; // Added to track user
   game?: GameType;
   period: string;
   mode: GameMode | string;
@@ -65,7 +70,7 @@ export interface Message {
   content: string;
   timestamp: number;
   isRead: boolean;
-  type: 'System' | 'Wallet';
+  type: 'System' | 'Wallet' | 'Promo';
 }
 
 export interface UserState {

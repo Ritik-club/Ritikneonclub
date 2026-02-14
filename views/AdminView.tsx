@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { GameMode, GiftCode, CustomGame, Transaction } from '../types.ts';
+import { GameMode, GiftCode, CustomGame, Transaction, UserBet, UserState } from '../types.ts';
 
 interface AdminViewProps {
   adminControls: any;
@@ -12,89 +12,161 @@ interface AdminViewProps {
   customGames: CustomGame[];
   pendingTxs: Transaction[];
   onProcessTx: (id: string, status: 'Completed' | 'Rejected', message?: string) => void;
+  userBets: UserBet[];
+  dbUsers: UserState[];
 }
 
 const AdminView: React.FC<AdminViewProps> = ({ 
-  adminControls, onUpdateControls, giftCodes, onAddGift, onAddGame, onRemoveGame, customGames, pendingTxs, onProcessTx 
+  adminControls, onUpdateControls, giftCodes, onAddGift, onAddGame, onRemoveGame, customGames, pendingTxs, onProcessTx, userBets, dbUsers
 }) => {
   const [selectedWinGoMode, setSelectedWinGoMode] = useState<GameMode>('30sec');
-  const [giftInput, setGiftInput] = useState({ code: '', amount: 0 });
-  const [txMessages, setTxMessages] = useState<Record<string, string>>({});
   const [activeImg, setActiveImg] = useState<string | null>(null);
+
+  // Custom Game Form State - Initialized correctly
+  const [newGame, setNewGame] = useState({ name: '', url: '', icon: '🎮', color: 'from-blue-600 to-indigo-600' });
 
   const setWinGoOverride = (num: number) => {
     onUpdateControls({ ...adminControls, wingo: { ...adminControls.wingo, [selectedWinGoMode]: num } });
   };
 
+  const updateSimpleControl = (game: string, value: any) => {
+    onUpdateControls({ ...adminControls, [game]: value });
+  };
+
+  const getUserPhone = (userId: string) => {
+    const found = dbUsers.find(u => u.id === userId);
+    const fallback = userId.slice(-6);
+    return found ? found.phone : fallback;
+  };
+
+  const handleAddCustomGame = () => {
+    if (!newGame.name || !newGame.url) {
+      alert("Fill Name and URL");
+      return;
+    }
+    const gameId = "CUSTOM_" + Date.now();
+    onAddGame({ ...newGame, id: gameId });
+    setNewGame({ name: '', url: '', icon: '🎮', color: 'from-blue-600 to-indigo-600' });
+    alert("Partner Game Added!");
+  };
+
   return (
-    <div className="p-4 space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="p-4 space-y-8 animate-in fade-in duration-500 pb-20 overflow-y-auto no-scrollbar max-h-screen">
       {activeImg && (
         <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4" onClick={() => setActiveImg(null)}>
            <img src={activeImg} className="max-w-full max-h-full rounded-xl" alt="Proof" />
         </div>
       )}
 
-      {/* WIN GO CONTROL */}
-      <div className="bg-[#1e2330] rounded-[2.5rem] p-6 border border-white/5 shadow-2xl">
-        <h2 className="text-sm font-black font-orbitron flex items-center gap-2 mb-4 text-blue-500 uppercase tracking-widest">🎰 Win Go Core</h2>
-        <div className="flex gap-2 overflow-x-auto pb-3 no-scrollbar mb-4">
-          {(['30sec', '1min', '3min', '5min'] as GameMode[]).map(mode => (
-            <button key={mode} onClick={() => setSelectedWinGoMode(mode)} className={`px-4 py-2 rounded-xl text-[9px] font-black border transition-all ${selectedWinGoMode === mode ? 'bg-blue-600 border-blue-400' : 'bg-[#11131a] border-white/5 text-gray-500'}`}>{mode}</button>
-          ))}
-        </div>
-        <div className="grid grid-cols-5 gap-2">
-          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-            <button key={num} onClick={() => setWinGoOverride(num)} className={`aspect-square rounded-xl flex items-center justify-center font-black text-lg border transition-all ${adminControls.wingo[selectedWinGoMode] === num ? 'bg-blue-600 border-white shadow-lg scale-110' : 'bg-[#11131a] border-white/10 text-gray-500'}`}>{num}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* CRICKET CONTROL */}
-      <div className="bg-[#1e2330] rounded-[2.5rem] p-6 border border-white/5 shadow-2xl">
-        <h2 className="text-sm font-black font-orbitron flex items-center gap-2 mb-4 text-green-500 uppercase tracking-widest">🏏 Cricket Sync</h2>
-        <div className="grid grid-cols-3 gap-2">
-          {[0, 1, 2, 4, 6].map(run => (
-            <button key={run} onClick={() => onUpdateControls({...adminControls, cricket: run})} className={`py-3 rounded-xl font-black text-xs border ${adminControls.cricket === run ? 'bg-green-600 border-white' : 'bg-[#11131a] border-white/5'}`}>{run} Runs</button>
-          ))}
-          <button onClick={() => onUpdateControls({...adminControls, cricket: null})} className="col-span-3 py-3 rounded-xl bg-white/5 text-[9px] font-black uppercase">Clear Override</button>
-        </div>
-      </div>
-
-      {/* AVIATOR & VORTEX */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-[#1e2330] rounded-3xl p-5 border border-white/5">
-           <p className="text-[10px] font-black uppercase text-red-500 mb-3">✈️ Aviator</p>
-           <input type="number" placeholder="Crash Point" className="w-full bg-black/40 rounded-xl px-4 py-3 text-xs font-bold border border-white/5 mb-2" value={adminControls.aviator || ''} onChange={e => onUpdateControls({...adminControls, aviator: parseFloat(e.target.value)})}/>
-           <button onClick={() => onUpdateControls({...adminControls, aviator: 1.00})} className="w-full py-2 bg-red-600 text-[9px] font-black uppercase rounded-lg">Instant Crash</button>
-        </div>
-        <div className="bg-[#1e2330] rounded-3xl p-5 border border-white/5">
-           <p className="text-[10px] font-black uppercase text-purple-500 mb-3">🌀 Vortex</p>
-           <div className="grid grid-cols-2 gap-2">
-             {[0, 9].map(n => (
-               <button key={n} onClick={() => onUpdateControls({...adminControls, vortex: n})} className={`py-2 rounded-lg text-[9px] font-black border ${adminControls.vortex === n ? 'bg-purple-600 border-white' : 'bg-black/20 border-white/5'}`}>Idx {n}</button>
+      {/* MASTER GAMES HUB */}
+      <div className="bg-white rounded-[2.5rem] p-6 border border-gray-100 shadow-xl space-y-6">
+        <h2 className="text-sm font-black font-orbitron text-blue-600 uppercase tracking-widest text-center">RITIK CLUB MASTER CONTROL</h2>
+        
+        {/* WinGo Grid */}
+        <div className="space-y-3">
+           <p className="text-[10px] font-black text-gray-400 uppercase">WinGo Override - {selectedWinGoMode}</p>
+           <div className="grid grid-cols-5 gap-2">
+             {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+               <button key={num} onClick={() => setWinGoOverride(num)} className={`aspect-square rounded-xl flex items-center justify-center font-black text-lg border transition-all ${adminControls.wingo[selectedWinGoMode] === num ? 'bg-blue-600 border-white text-white shadow-lg shadow-blue-200' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>{num}</button>
              ))}
-             <button onClick={() => onUpdateControls({...adminControls, vortex: null})} className="col-span-2 py-1 bg-white/5 text-[8px] rounded uppercase">Clear</button>
+           </div>
+        </div>
+
+        {/* Global Precision Inputs */}
+        <div className="grid grid-cols-2 gap-4">
+           <div className="space-y-2">
+              <p className="text-[9px] font-black text-gray-400 uppercase">Vortex (Idx 0-8)</p>
+              <input type="number" placeholder="Target Idx" className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs" onBlur={(e) => updateSimpleControl('vortex', parseInt(e.target.value))} />
+           </div>
+           <div className="space-y-2">
+              <p className="text-[9px] font-black text-gray-400 uppercase">Wheel (Idx 0-7)</p>
+              <input type="number" placeholder="Target Idx" className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs" onBlur={(e) => updateSimpleControl('wheel', parseInt(e.target.value))} />
            </div>
         </div>
       </div>
 
-      {/* REQUESTS MONITOR */}
-      <div className="bg-[#1e2330] rounded-3xl p-6 border border-white/5 space-y-4">
-         <h3 className="text-xs font-black font-orbitron text-green-500 uppercase">Requests Monitor ({pendingTxs.length})</h3>
+      {/* PARTNER GAME REGISTRY */}
+      <div className="bg-white rounded-3xl p-6 border border-gray-100 space-y-4 shadow-xl">
+         <h3 className="text-xs font-black font-orbitron text-cyan-600 uppercase tracking-widest">Partner Game Registry</h3>
+         
+         <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+               <div className="space-y-1">
+                  <label className="text-[8px] font-black text-gray-400 uppercase ml-1">Game Name</label>
+                  <input value={newGame.name} onChange={e => setNewGame({...newGame, name: e.target.value})} type="text" placeholder="Mega Win" className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs" />
+               </div>
+               <div className="space-y-1">
+                  <label className="text-[8px] font-black text-gray-400 uppercase ml-1">Icon</label>
+                  <input value={newGame.icon} onChange={e => setNewGame({...newGame, icon: e.target.value})} type="text" className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs text-center" />
+               </div>
+            </div>
+            
+            <input value={newGame.url} onChange={e => setNewGame({...newGame, url: e.target.value})} type="text" placeholder="URL" className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs" />
+            <input value={newGame.color} onChange={e => setNewGame({...newGame, color: e.target.value})} type="text" placeholder="from-blue-600 to-indigo-600" className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs" />
+
+            <button onClick={handleAddCustomGame} className="w-full bg-cyan-600 py-4 rounded-2xl font-black text-white text-[10px] uppercase shadow-lg shadow-cyan-100">
+               Register Partner Game
+            </button>
+         </div>
+
+         <div className="pt-4 border-t border-gray-100 space-y-2">
+            {customGames.map(game => (
+               <div key={game.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <div className="flex items-center gap-3">
+                     <span className="text-xl">{game.icon}</span>
+                     <div>
+                        <p className="text-[10px] font-black text-gray-800">{game.name}</p>
+                        <p className="text-[7px] text-gray-400 truncate max-w-[150px]">{game.url}</p>
+                     </div>
+                  </div>
+                  <button onClick={() => onRemoveGame(game.id)} className="text-red-500 font-black text-[8px] uppercase bg-red-50 px-3 py-1 rounded-full">Remove</button>
+               </div>
+            ))}
+         </div>
+      </div>
+
+      {/* LIVE STAKES MONITORING */}
+      <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-xl space-y-4">
+         <div className="flex justify-between items-center">
+            <h3 className="text-xs font-black font-orbitron text-purple-600 uppercase tracking-widest">Live Monitoring</h3>
+            <span className="text-[8px] bg-purple-50 text-purple-600 px-2 py-1 rounded-full border border-purple-100 font-black">LIVE</span>
+         </div>
+         
+         <div className="space-y-2 max-h-80 overflow-y-auto no-scrollbar">
+            {userBets.slice(0, 50).map(bet => (
+              <div key={bet.id} className="bg-gray-50 p-3 rounded-xl border border-gray-100 text-[10px] space-y-1">
+                 <div className="flex justify-between items-center">
+                    <span className="font-black text-blue-600">{getUserPhone(bet.userId)}</span>
+                    <span className="text-gray-400 font-bold">{new Date(bet.timestamp).toLocaleTimeString()}</span>
+                 </div>
+                 <div className="flex justify-between items-center font-black">
+                    <div className="flex items-center gap-2">
+                       <span className="bg-white px-2 py-0.5 rounded text-gray-400 border border-gray-100">{bet.game}</span>
+                       <span className="text-gray-800">ON: {String(bet.selection)}</span>
+                    </div>
+                    <span className="text-yellow-600">🪙 {bet.amount}</span>
+                 </div>
+              </div>
+            ))}
+         </div>
+      </div>
+
+      {/* FINANCE MONITOR */}
+      <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-xl space-y-4">
+         <h3 className="text-xs font-black font-orbitron text-green-600 uppercase tracking-widest">Transaction Vault</h3>
          <div className="space-y-3">
             {pendingTxs.map(tx => (
-              <div key={tx.id} className="bg-[#11131a] p-4 rounded-2xl border border-white/5 space-y-3">
+              <div key={tx.id} className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-3">
                  <div className="flex justify-between items-start">
                     <div>
-                       <p className="text-xs font-black uppercase tracking-wider">{tx.type} - ₹{tx.amount}</p>
-                       <p className="text-[9px] text-blue-500 font-bold">UPI: {tx.userUpiId}</p>
+                       <p className="text-xs font-black text-gray-800 uppercase">{tx.type} - ₹{tx.amount}</p>
+                       <p className="text-[9px] text-blue-500 font-bold">User: {getUserPhone(tx.userId)}</p>
                     </div>
-                    {tx.screenshotUrl && <button onClick={() => setActiveImg(tx.screenshotUrl!)} className="w-10 h-10 bg-white/5 rounded-lg text-xs flex items-center justify-center">📷</button>}
+                    {tx.screenshotUrl && <button onClick={() => setActiveImg(tx.screenshotUrl!)} className="w-10 h-10 bg-white rounded-lg text-xs flex items-center justify-center border border-gray-100">📷</button>}
                  </div>
-                 <textarea placeholder="Reason/Note" value={txMessages[tx.id] || ''} onChange={(e) => setTxMessages(p => ({ ...p, [tx.id]: e.target.value }))} className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-[10px] h-16"/>
                  <div className="flex gap-2">
-                    <button onClick={() => onProcessTx(tx.id, 'Completed', txMessages[tx.id])} className="flex-1 bg-green-600 py-3 rounded-xl text-[10px] font-black uppercase">Approve</button>
-                    <button onClick={() => onProcessTx(tx.id, 'Rejected', txMessages[tx.id])} className="flex-1 bg-red-600/20 text-red-500 py-3 rounded-xl text-[10px] font-black uppercase">Reject</button>
+                    <button onClick={() => onProcessTx(tx.id, 'Completed')} className="flex-1 bg-green-600 py-3 rounded-xl text-white text-[10px] font-black uppercase shadow-lg shadow-green-100">Approve</button>
+                    <button onClick={() => onProcessTx(tx.id, 'Rejected')} className="flex-1 bg-gray-200 text-gray-500 py-3 rounded-xl text-[10px] font-black uppercase">Reject</button>
                  </div>
               </div>
             ))}

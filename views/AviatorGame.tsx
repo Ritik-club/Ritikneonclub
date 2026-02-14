@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Tab } from '../types.ts';
+import React, { useState, useEffect, useRef } from 'react';
+import { Tab, GameType } from '../types.ts';
 
 interface AviatorGameProps {
   balance: number;
@@ -9,137 +9,165 @@ interface AviatorGameProps {
   onClearOverride: () => void;
   hasAccess: boolean;
   setTab: (t: Tab) => void;
+  onSound: (k: any) => void;
+  userBets: any[];
 }
 
-const AviatorGame: React.FC<AviatorGameProps> = ({ balance, adminOverride, onUpdateBalance, onClearOverride, hasAccess, setTab }) => {
+const AviatorGame: React.FC<AviatorGameProps> = ({ balance, adminOverride, onUpdateBalance, onClearOverride, hasAccess, setTab, onSound, userBets }) => {
   const [multiplier, setMultiplier] = useState(1.00);
-  const [timeLeft, setTimeLeft] = useState(0);
   const [isFlying, setIsFlying] = useState(false);
   const [isCrashed, setIsCrashed] = useState(false);
   const [crashPoint, setCrashPoint] = useState(1.00);
-  const [betAmount, setBetAmount] = useState(10);
-  const [hasBet, setHasBet] = useState(false);
-  const [cashedOut, setCashedOut] = useState(false);
-  const [liveBets, setLiveBets] = useState<any[]>([]);
+  const [bet1, setBet1] = useState({ amount: 10, active: false, cashed: false });
+  const [bet2, setBet2] = useState({ amount: 10, active: false, cashed: false });
+  const [history, setHistory] = useState([1.08, 1.00, 2.90, 1.23, 3.31, 1.71]);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
-      const periodDuration = 30000;
+      const periodDuration = 25000;
       const cycleTime = now % periodDuration;
-      const waitTime = 10000;
-      const currentPeriod = Math.floor(now / periodDuration).toString();
+      const waitTime = 8000;
 
       if (cycleTime < waitTime) {
         setIsFlying(false);
         setIsCrashed(false);
-        setTimeLeft(Math.ceil((waitTime - cycleTime) / 1000));
         setMultiplier(1.00);
-        if (cycleTime < 500) { 
-           setHasBet(false);
-           setCashedOut(false);
-           setLiveBets(Array(15).fill(0).map((_, i) => ({ id: i, name: `User_${Math.floor(100+Math.random()*900)}`, amount: [10, 50, 100][Math.floor(Math.random()*3)], win: null })));
+        if (cycleTime < 500) {
+           setBet1(p => ({ ...p, active: false, cashed: false }));
+           setBet2(p => ({ ...p, active: false, cashed: false }));
         }
       } else {
         if (!isFlying) {
-          let targetCrash: number;
+          // PROFIT CAP: Target is between 1 and 5 (rarely reaching 5)
+          const roll = Math.random();
+          let target: number;
           if (adminOverride !== null) {
-            targetCrash = adminOverride;
+            target = adminOverride;
             onClearOverride();
+          } else if (roll > 0.98) {
+            target = 4.0 + Math.random(); // Rare 4-5x
+          } else if (roll > 0.8) {
+            target = 2.0 + Math.random() * 2; // Medium 2-4x
           } else {
-            let hash = 0;
-            const seed = currentPeriod + "aviator_v4";
-            for (let i = 0; i < seed.length; i++) hash = ((hash << 5) - hash) + seed.charCodeAt(i);
-            targetCrash = 1 + (Math.abs(hash) % 400) / 100;
+            target = 1.0 + Math.random() * 1.5; // Frequent 1-2.5x
           }
-          setCrashPoint(targetCrash);
+          setCrashPoint(Math.min(target, 5.0)); // Strict 5.0 Cap
           setIsFlying(true);
         }
-
-        const elapsedFlight = (cycleTime - waitTime) / 1000;
-        const currentMult = Math.pow(1.08, elapsedFlight);
-        
+        const elapsed = (cycleTime - waitTime) / 1000;
+        const currentMult = Math.pow(1.08, elapsed);
         if (currentMult >= crashPoint) {
+          if (!isCrashed) {
+             onSound('crash');
+             setHistory(prev => [crashPoint, ...prev].slice(0, 10));
+          }
           setIsCrashed(true);
           setMultiplier(crashPoint);
         } else {
           setMultiplier(currentMult);
-          if (Math.random() > 0.95) {
-            setLiveBets(p => p.map(lb => lb.win === null && Math.random() > 0.5 ? { ...lb, win: lb.amount * currentMult } : lb));
-          }
         }
       }
-    }, 100);
+    }, 50);
     return () => clearInterval(interval);
   }, [isFlying, adminOverride, crashPoint]);
 
-  const handlePlaceBet = () => {
-    if (!hasAccess) return;
-    if (!isFlying && !hasBet && balance >= betAmount) {
-      onUpdateBalance(-betAmount);
-      setHasBet(true);
-    }
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    let animationFrameId: number;
+    const render = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (isFlying && !isCrashed) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 4;
+        ctx.moveTo(0, canvas.height);
+        const x = (multiplier - 1) * 120;
+        const y = canvas.height - Math.pow(multiplier, 1.4) * 12;
+        ctx.quadraticCurveTo(x / 2, canvas.height, x, y);
+        ctx.stroke();
+        ctx.font = '30px serif';
+        ctx.fillText('✈️', x - 15, y + 10);
+      }
+      animationFrameId = requestAnimationFrame(render);
+    };
+    render();
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [multiplier, isFlying, isCrashed]);
+
+  const handleBet = (panel: 1 | 2) => {
+    const bet = panel === 1 ? bet1 : bet2;
+    if (balance < bet.amount) return;
+    onUpdateBalance(-bet.amount);
+    if (panel === 1) setBet1({ ...bet1, active: true });
+    else setBet2({ ...bet2, active: true });
+    onSound('bet');
   };
 
-  const handleCashOut = () => {
-    if (isFlying && !isCrashed && hasBet && !cashedOut) {
-      const win = betAmount * multiplier;
-      onUpdateBalance(win);
-      setCashedOut(true);
-    }
+  const handleCashout = (panel: 1 | 2) => {
+    const bet = panel === 1 ? bet1 : bet2;
+    if (!isFlying || isCrashed || !bet.active || bet.cashed) return;
+    const win = bet.amount * multiplier;
+    onUpdateBalance(win);
+    if (panel === 1) setBet1({ ...bet1, cashed: true });
+    else setBet2({ ...bet2, cashed: true });
+    onSound('win');
   };
 
   return (
-    <div className="p-4 space-y-4 animate-in fade-in duration-500">
-      <div className="h-64 bg-[#0a0c10] rounded-[2rem] border border-red-500/20 relative overflow-hidden flex flex-col items-center justify-center">
-        {!isFlying ? (
-          <div className="text-center z-10">
-            <p className="text-[10px] text-red-500 font-black uppercase tracking-[0.3em] mb-2">Next Flight Starts</p>
-            <p className="text-6xl font-black font-orbitron text-white">{timeLeft}s</p>
-          </div>
-        ) : (
-          <div className="text-center z-10">
-            <p className={`text-7xl font-black font-orbitron transition-all ${isCrashed ? 'text-red-600 scale-90' : 'text-white scale-110 drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]'}`}>
-              {multiplier.toFixed(2)}x
-            </p>
-          </div>
-        )}
+    <div className="flex flex-col h-full bg-white overflow-y-auto no-scrollbar pb-24">
+      <div className="flex gap-2 p-2 bg-gray-50 overflow-x-auto no-scrollbar border-b border-gray-100">
+        {history.map((h, i) => (
+          <span key={i} className={`px-3 py-1 rounded-full text-[9px] font-black border bg-white ${h > 3 ? 'text-blue-600 border-blue-200 shadow-sm' : 'text-gray-400 border-gray-200'}`}>{h.toFixed(2)}x</span>
+        ))}
       </div>
 
-      <div className="bg-[#1e2330] p-5 rounded-[2.5rem] border border-white/5 space-y-4 shadow-2xl">
-        {!hasAccess ? (
-           <div className="text-center py-4 space-y-3">
-              <p className="text-[10px] text-gray-500 font-black uppercase">Flight Restricted</p>
-              <button onClick={() => setTab(Tab.WALLET)} className="w-full py-4 bg-red-600 rounded-2xl font-black text-[10px] uppercase">Deposit ₹20 to Fly</button>
-           </div>
-        ) : (
-           <>
-              <div className="flex justify-between items-center bg-black/40 p-4 rounded-2xl border border-white/5">
-                 <button onClick={() => setBetAmount(Math.max(10, betAmount - 10))} className="w-10 h-10 bg-white/5 rounded-xl font-black text-xl">-</button>
-                 <span className="text-lg font-black font-orbitron">🪙 {betAmount}</span>
-                 <button onClick={() => setBetAmount(betAmount + 10)} className="w-10 h-10 bg-white/5 rounded-xl font-black text-xl">+</button>
-              </div>
-              {!isFlying ? (
-                <button disabled={hasBet} onClick={handlePlaceBet} className={`w-full py-5 rounded-2xl font-black text-lg uppercase shadow-2xl ${hasBet ? 'bg-gray-800 text-gray-500' : 'bg-red-600 text-white'}`}>{hasBet ? 'Waiting...' : 'Bet'}</button>
-              ) : (
-                <button disabled={isCrashed || cashedOut || !hasBet} onClick={handleCashOut} className={`w-full py-5 rounded-2xl font-black text-lg uppercase shadow-2xl ${isCrashed || cashedOut || !hasBet ? 'bg-gray-800 text-gray-500' : 'bg-orange-500 text-black'}`}>{cashedOut ? 'Won!' : isCrashed ? 'Lost' : `Cash Out ${(betAmount * multiplier).toFixed(1)}`}</button>
-              )}
-           </>
-        )}
-      </div>
-
-      <div className="bg-[#1e2330] rounded-3xl p-4 border border-white/5 h-40 overflow-hidden relative">
-         <h4 className="text-[10px] font-black text-gray-600 uppercase mb-3 px-2 tracking-widest">Live Activity</h4>
-         <div className="space-y-2">
-            {liveBets.map(lb => (
-              <div key={lb.id} className="flex justify-between items-center bg-black/20 p-2 rounded-lg text-[9px]">
-                <span className="text-gray-400 font-bold">{lb.name}</span>
-                <span className="text-white font-black">🪙 {lb.amount}</span>
-                {lb.win ? <span className="text-green-500 font-black">+{lb.win.toFixed(1)}</span> : <span className="text-gray-700 font-bold">Betting...</span>}
-              </div>
-            ))}
+      <div className="relative h-72 bg-gray-50 m-2 rounded-3xl border border-gray-100 overflow-hidden flex flex-col items-center justify-center shadow-inner">
+         <canvas ref={canvasRef} width={400} height={300} className="absolute inset-0 w-full h-full opacity-60" />
+         <div className="z-10 text-center">
+            {isCrashed ? (
+              <p className="text-5xl font-black font-orbitron text-red-500">FLEW AWAY!</p>
+            ) : (
+              <p className="text-7xl font-black font-orbitron text-blue-600">{multiplier.toFixed(2)}x</p>
+            )}
          </div>
       </div>
+
+      <div className="grid grid-cols-1 gap-4 p-2">
+         {[1, 2].map((p: any) => {
+           const b = p === 1 ? bet1 : bet2;
+           const sB = p === 1 ? setBet1 : setBet2;
+           const isLocked = b.active && !b.cashed && !isCrashed;
+           return (
+             <div key={p} className="bg-white p-4 rounded-3xl border border-gray-100 flex gap-4 items-center shadow-sm">
+                <div className="flex-1 space-y-2">
+                   <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2 border border-gray-100">
+                      <button disabled={b.active} onClick={() => sB({...b, amount: Math.max(10, b.amount-10)})} className="text-xl font-black text-blue-600">-</button>
+                      <span className="font-orbitron font-black text-sm">{b.amount}.00</span>
+                      <button disabled={b.active} onClick={() => sB({...b, amount: b.amount+10})} className="text-xl font-black text-blue-600">+</button>
+                   </div>
+                   <div className="grid grid-cols-2 gap-2">
+                      {[10, 50].map(v => <button key={v} disabled={b.active} onClick={() => sB({...b, amount: v})} className="bg-gray-50 py-1 rounded-lg text-[10px] font-black text-gray-500 border border-gray-100">INR {v}</button>)}
+                   </div>
+                </div>
+                {!b.active ? (
+                  <button onClick={() => handleBet(p)} className="flex-1 h-full bg-blue-600 text-white rounded-2xl font-black text-xl uppercase py-4 shadow-lg shadow-blue-100 active:scale-95">BET</button>
+                ) : (
+                  <button onClick={() => handleCashout(p)} disabled={isCrashed || b.cashed} className={`flex-1 h-full rounded-2xl font-black text-sm uppercase py-4 text-white shadow-lg transition-all ${b.cashed ? 'bg-green-500 shadow-green-100' : isCrashed ? 'bg-gray-400' : 'bg-blue-600'}`}>
+                    {b.cashed ? 'CASHED' : isCrashed ? 'CRASHED' : `OUT ${(b.amount * multiplier).toFixed(1)}`}
+                  </button>
+                )}
+             </div>
+           );
+         })}
+      </div>
+      <p className="text-center text-[8px] font-black text-gray-300 uppercase mt-2">Maximum Safe Multiplier: 5.0x Protocol Capped</p>
     </div>
   );
 };

@@ -16,8 +16,11 @@ const WalletView: React.FC<WalletViewProps> = ({ balance, onDeposit, onWithdraw,
   const [amount, setAmount] = useState('20');
   const [screenshot, setScreenshot] = useState<string | null>(null);
 
+  // Defensive check with || []
+  const transactionsArray = transactions || [];
+
   // Calculate total successful deposits in INR
-  const totalApprovedDepositsInr = transactions
+  const totalApprovedDepositsInr = transactionsArray
     .filter(t => t.type === 'Deposit' && t.status === 'Completed')
     .reduce((sum, t) => sum + t.amount, 0);
 
@@ -230,7 +233,7 @@ const WalletView: React.FC<WalletViewProps> = ({ balance, onDeposit, onWithdraw,
       <div className="bg-[#1e2330] rounded-3xl p-6 border border-white/5">
          <h3 className="text-xs font-black font-orbitron text-gray-400 mb-4 uppercase">Financial History</h3>
          <div className="space-y-3">
-            {transactions.map(tx => (
+            {transactionsArray.map(tx => (
               <div key={tx.id} className="bg-[#11131a] p-4 rounded-2xl border border-white/5 flex justify-between items-center">
                  <div>
                     <p className="text-[10px] font-black text-gray-300 uppercase">{tx.type} (₹{tx.amount})</p>
@@ -244,7 +247,7 @@ const WalletView: React.FC<WalletViewProps> = ({ balance, onDeposit, onWithdraw,
                  </div>
               </div>
             ))}
-            {transactions.length === 0 && (
+            {transactionsArray.length === 0 && (
               <div className="text-center py-10 opacity-20">
                 <p className="text-4xl mb-2">💸</p>
                 <p className="text-[10px] font-black uppercase tracking-widest">No transactions yet</p>
