@@ -36,13 +36,13 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, userPh
           key={tab.id}
           onClick={() => setActiveTab(tab.id)}
           className={`flex flex-col items-center justify-center transition-all relative ${
-            activeTab === tab.id ? 'text-[#4b81f1] scale-110' : 'text-gray-400'
+            activeTab === tab.id ? 'text-red-600 scale-110' : 'text-gray-400'
           }`}
         >
           <div className="w-6 h-6">
             {tab.icon}
             {tab.badge !== undefined && tab.badge > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-[#11131a]">
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white">
                 {tab.badge > 9 ? '9+' : tab.badge}
               </span>
             )}

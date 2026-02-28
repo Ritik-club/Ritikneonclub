@@ -78,7 +78,14 @@ const App: React.FC = () => {
     try {
       const saved = localStorage.getItem('rc_messages');
       const parsed = saved ? JSON.parse(saved) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      // Deduplicate by ID
+      const seen = new Set();
+      return parsed.filter(m => {
+        if (seen.has(m.id)) return false;
+        seen.add(m.id);
+        return true;
+      });
     } catch { return []; }
   });
 
@@ -304,7 +311,7 @@ const App: React.FC = () => {
         }
         const title = tx.type === 'Withdrawal' ? `Withdrawal ${status}` : `Deposit ${status}`;
         const content = adminMessage ? `Status Update: ${status}\nNote: ${adminMessage}` : `Status Update: ${status}`;
-        const newMsg: Message = { id: "MSG" + Date.now(), userId: tx.userId, title, content, timestamp: Date.now(), isRead: false, type: 'System' };
+        const newMsg: Message = { id: "MSG" + Date.now() + Math.random().toString(36).substr(2, 5), userId: tx.userId, title, content, timestamp: Date.now(), isRead: false, type: 'System' };
         setMessages(prevMsgs => [newMsg, ...(prevMsgs || [])]);
         return { ...tx, status };
       }
@@ -316,7 +323,7 @@ const App: React.FC = () => {
   const unreadCount = user ? (messages || []).filter(m => m.userId === user.id && !m.isRead).length : 0;
 
   if (!user) return <AuthModal onAuth={(p, pass, reg, ref) => {
-    if (reg) { const newUser: UserState = { id: "U"+Date.now(), phone: p, password: pass, balance: WELCOME_BONUS, referralCode: ref || "RC"+Math.random(), vipLevel: 1, totalTurnover: 0 }; setDbUsers(prev => [...(prev || []), newUser]); setUser(newUser); }
+    if (reg) { const newUser: UserState = { id: "U"+Date.now() + Math.random().toString(36).substr(2, 5), phone: p, password: pass, balance: WELCOME_BONUS, referralCode: ref || "RC"+Math.random(), vipLevel: 1, totalTurnover: 0 }; setDbUsers(prev => [...(prev || []), newUser]); setUser(newUser); }
     else { const u = (dbUsers || []).find(x => x.phone === p && x.password === pass); if (u) setUser(u); else alert("Wrong details"); }
   }} />;
 
@@ -326,15 +333,15 @@ const App: React.FC = () => {
         {isResultModalOpen && <ResultModal result={lastResult} userProfit={lastProfit} hasBet={true} onClose={() => setIsResultModalOpen(false)} />}
         <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md px-4 py-3 flex justify-between items-center border-b border-gray-100">
           <div className="flex items-center gap-2">
-            {activeGame && <button onClick={() => { playSound('click'); setActiveGame(null); }} className="mr-2 text-xl text-blue-600">❮</button>}
-            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center font-black shadow-lg text-white">R</div>
+            {activeGame && <button onClick={() => { playSound('click'); setActiveGame(null); }} className="mr-2 text-xl text-red-600">❮</button>}
+            <div className="w-9 h-9 bg-red-600 rounded-xl flex items-center justify-center font-black shadow-lg text-white">R</div>
             <div>
-              <h1 className="text-lg font-black font-orbitron tracking-tighter text-blue-600">Ritik Club</h1>
+              <h1 className="text-lg font-black font-orbitron tracking-tighter text-red-600">Ritik Club</h1>
               <p className="text-[8px] font-black text-green-500 uppercase tracking-widest">Safe Prediction v7.2</p>
             </div>
           </div>
           <div className="text-right">
-             <p className="text-[10px] text-gray-400 font-black">BALANCE</p><p className="text-sm font-black text-blue-600 font-orbitron">🪙 {user.balance.toFixed(2)}</p>
+             <p className="text-[10px] text-gray-400 font-black">BALANCE</p><p className="text-sm font-black text-red-600 font-orbitron">🪙 {user.balance.toFixed(2)}</p>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto no-scrollbar bg-gray-50">
@@ -353,7 +360,7 @@ const App: React.FC = () => {
           {activeTab === Tab.HOME && activeGame === GameType.DRAGON_TIGER && <DragonTigerGame hasAccess={hasAccess} setTab={setActiveTab} balance={user.balance} adminOverride={adminControls.dragonTiger} onUpdateBalance={updateBalance} onClearOverride={() => setAdminControls(p => ({...p, dragonTiger: null}))} onSound={playSound} />}
           {activeTab === Tab.HOME && activeGame === GameType.K3 && <K3Game hasAccess={hasAccess} setTab={setActiveTab} balance={user.balance} adminOverride={adminControls.k3} onUpdateBalance={updateBalance} onClearOverride={() => setAdminControls(p => ({...p, k3: null}))} />}
           {activeTab === Tab.PROFILE && <ProfileView user={user} setTab={setActiveTab} onUpdateUser={setUser} onRedeemGift={(code) => { const g = (giftCodes || []).find(x => x.code === code); if (g) { updateBalance(g.amount); setGiftCodes(prev => (prev || []).filter(x => x.code !== code)); alert("Success!"); playSound('win'); } }} />}
-          {activeTab === Tab.WALLET && <WalletView balance={user.balance} transactions={(transactions || []).filter(t => t.userId === user.id)} onDeposit={(d) => { const newTx: Transaction = { id: "TX"+Date.now(), userId: user.id, type: 'Deposit', amount: d.amount, coins: d.amount*10, status: 'Pending', timestamp: Date.now(), utr: d.utr, userUpiId: d.upiId, screenshotUrl: d.screenshot }; setTransactions(p => [newTx, ...(p || [])]); }} onWithdraw={(d) => { const newTx: Transaction = { id: "TX"+Date.now(), userId: user.id, type: 'Withdrawal', amount: d.amount/10, coins: d.amount, status: 'Pending', timestamp: Date.now(), userUpiId: d.upiId }; setTransactions(p => [newTx, ...(p || [])]); updateBalance(-d.amount); }} />}
+          {activeTab === Tab.WALLET && <WalletView balance={user.balance} transactions={(transactions || []).filter(t => t.userId === user.id)} onDeposit={(d) => { const newTx: Transaction = { id: "TX"+Date.now() + Math.random().toString(36).substr(2, 5), userId: user.id, type: 'Deposit', amount: d.amount, coins: d.amount*10, status: 'Pending', timestamp: Date.now(), utr: d.utr, userUpiId: d.upiId, screenshotUrl: d.screenshot }; setTransactions(p => [newTx, ...(p || [])]); }} onWithdraw={(d) => { const newTx: Transaction = { id: "TX"+Date.now() + Math.random().toString(36).substr(2, 5), userId: user.id, type: 'Withdrawal', amount: d.amount/10, coins: d.amount, status: 'Pending', timestamp: Date.now(), userUpiId: d.upiId }; setTransactions(p => [newTx, ...(p || [])]); updateBalance(-d.amount); }} />}
           {activeTab === Tab.INBOX && <InboxView messages={(messages || []).filter(m => m.userId === user.id)} onMarkRead={(id) => setMessages(p => (p || []).map(m => m.id === id ? {...m, isRead: true} : m))} onClearAll={() => setMessages(p => (p || []).filter(m => m.userId !== user.id))} />}
           {activeTab === Tab.HISTORY && <HistoryView results={results[activeMode] || []} userBets={userBets || []} />}
           {activeTab === Tab.ADMIN && user.phone === ADMIN_PHONE && (

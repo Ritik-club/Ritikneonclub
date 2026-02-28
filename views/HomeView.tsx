@@ -12,7 +12,7 @@ const HomeView: React.FC<HomeViewProps> = ({ user, onSelectGame, customGames }) 
   const categories = ["All Games", "Lottery", "Crash", "Casino", "Mini Games"];
   
   const defaultGames = [
-    { id: GameType.WINGO, name: 'Win Go', icon: '🎰', color: 'from-blue-50 to-blue-100 border-blue-200', text: 'text-blue-900', sub: '4.8x Multiplier' },
+    { id: GameType.WINGO, name: 'Win Go', icon: '🎰', color: 'from-red-50 to-red-100 border-red-200', text: 'text-red-900', sub: '4.8x Multiplier' },
     { id: GameType.AVIATOR, name: 'Aviator', icon: '✈️', color: 'from-red-50 to-red-100 border-red-200', text: 'text-red-900', sub: 'Instant Cashout' },
     { id: GameType.PLINKO, name: 'Plinko', icon: '🔽', color: 'from-pink-50 to-pink-100 border-pink-200', text: 'text-pink-900', sub: 'Balanced Payout' },
     { id: GameType.D5, name: '5D Lotre', icon: '🔢', color: 'from-cyan-50 to-cyan-100 border-cyan-200', text: 'text-cyan-900', sub: '5-Digit Fortune' },
@@ -30,7 +30,7 @@ const HomeView: React.FC<HomeViewProps> = ({ user, onSelectGame, customGames }) 
 
   return (
     <div className="space-y-6 px-4 py-4 animate-in fade-in slide-in-from-bottom duration-500 bg-gray-50 h-full">
-      <div className="h-44 rounded-3xl bg-gradient-to-r from-blue-600 to-blue-500 p-6 flex flex-col justify-center relative overflow-hidden shadow-xl text-white">
+      <div className="h-44 rounded-3xl bg-gradient-to-r from-red-600 to-red-500 p-6 flex flex-col justify-center relative overflow-hidden shadow-xl text-white">
         <h2 className="text-2xl font-black font-orbitron mb-2 relative z-10 leading-tight uppercase">Ritik Club<br/>v7.2 Protocol</h2>
         <p className="text-[10px] font-black text-white/70 uppercase tracking-[0.3em] relative z-10">House Edge: Regulated</p>
         <div className="mt-4 flex gap-2 relative z-10">
@@ -41,7 +41,7 @@ const HomeView: React.FC<HomeViewProps> = ({ user, onSelectGame, customGames }) 
 
       <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
         {categories.map((c, i) => (
-          <button key={i} className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap border ${i === 0 ? 'bg-blue-600 border-blue-400 shadow-md text-white' : 'bg-white border-gray-200 text-gray-500'}`}>
+          <button key={i} className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap border ${i === 0 ? 'bg-red-600 border-red-400 shadow-md text-white' : 'bg-white border-gray-200 text-gray-500'}`}>
             {c}
           </button>
         ))}

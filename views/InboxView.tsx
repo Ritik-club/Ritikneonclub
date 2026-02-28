@@ -24,18 +24,18 @@ const InboxView: React.FC<InboxViewProps> = ({ messages, onMarkRead, onClearAll 
       </div>
 
       <div className="space-y-3">
-        {messages.length > 0 ? messages.map((msg) => (
+        {messages.length > 0 ? messages.map((msg, idx) => (
           <div 
-            key={msg.id} 
+            key={`${msg.id}-${idx}`} 
             onClick={() => onMarkRead(msg.id)}
             className={`glass-morphism rounded-3xl p-5 border transition-all active:scale-[0.98] ${
-              msg.isRead ? 'border-white/5 opacity-60' : 'border-blue-500/30 bg-blue-500/5'
+              msg.isRead ? 'border-white/5 opacity-60' : 'border-red-500/30 bg-red-500/5'
             }`}
           >
             <div className="flex justify-between items-start mb-3">
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm ${
-                  msg.type === 'Wallet' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-blue-500/20 text-blue-500'
+                  msg.type === 'Wallet' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-red-500/20 text-red-500'
                 }`}>
                   {msg.type === 'Wallet' ? '💰' : '🔔'}
                 </div>
@@ -44,7 +44,7 @@ const InboxView: React.FC<InboxViewProps> = ({ messages, onMarkRead, onClearAll 
                   <p className="text-[8px] text-gray-500 font-bold uppercase">{new Date(msg.timestamp).toLocaleString()}</p>
                 </div>
               </div>
-              {!msg.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-lg shadow-blue-500/50"></div>}
+              {!msg.isRead && <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-lg shadow-red-500/50"></div>}
             </div>
             <p className="text-[11px] text-gray-300 leading-relaxed font-medium">
               {msg.content}

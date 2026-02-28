@@ -22,7 +22,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ results, userBets }) => {
     if (selection === 'Big' || selection === 'Small') {
       return (
         <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-          selection === 'Big' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+          selection === 'Big' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
         }`}>
           {selection}
         </span>
@@ -44,7 +44,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ results, userBets }) => {
         <button 
           onClick={() => setActiveTab('GameHistory')}
           className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-            activeTab === 'GameHistory' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-gray-500 hover:text-gray-300'
+            activeTab === 'GameHistory' ? 'bg-red-600 text-white shadow-lg shadow-red-900/40' : 'text-gray-500 hover:text-gray-300'
           }`}
         >
           Game History
@@ -52,7 +52,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ results, userBets }) => {
         <button 
           onClick={() => setActiveTab('MyBets')}
           className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-            activeTab === 'MyBets' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-gray-500 hover:text-gray-300'
+            activeTab === 'MyBets' ? 'bg-red-600 text-white shadow-lg shadow-red-900/40' : 'text-gray-500 hover:text-gray-300'
           }`}
         >
           My Bets
@@ -63,7 +63,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ results, userBets }) => {
         <h2 className="text-xl font-bold font-orbitron tracking-tight">
           {activeTab === 'GameHistory' ? 'Draw Ledger' : 'My Stakes'}
         </h2>
-        <div className="text-[10px] bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20 font-bold uppercase tracking-widest">
+        <div className="text-[10px] bg-red-500/10 text-red-400 px-3 py-1 rounded-full border border-red-500/20 font-bold uppercase tracking-widest">
           {activeTab === 'GameHistory' ? 'Live Results' : `${userBets.length} Rounds`}
         </div>
       </div>
